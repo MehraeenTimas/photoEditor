@@ -5,8 +5,8 @@ const BrushColorPicker = ({ setBrushColor }) => {
   const [color, setColor] = useState('#000000');
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm">Brush Color:</label>
+    <div className="p-2 mb-2 bg-gray-500 text-white rounded flex flex-row items-center gap-2">
+      <label className="">Brush Color:</label>
       <input
         type="color"
         value={color}
@@ -14,7 +14,7 @@ const BrushColorPicker = ({ setBrushColor }) => {
           setColor(e.target.value);
           setBrushColor(e.target.value);
         }}
-        className="w-10 h-10 cursor-pointer"
+        className="w-24 h-8 cursor-pointer"
       />
     </div>
   );

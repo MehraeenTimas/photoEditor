@@ -5,8 +5,8 @@ const TextColorPicker = ({ setTextColor }) => {
   const [color, setColor] = useState('#000000');
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm">Text Color:</label>
+    <div className="flex mb-2 flex-row items-center gap-2 p-2 bg-gray-500 rounded">
+      <label className="">Text Color:</label>
       <input
         type="color"
         value={color}
@@ -14,7 +14,7 @@ const TextColorPicker = ({ setTextColor }) => {
           setColor(e.target.value);
           setTextColor(e.target.value);
         }}
-        className="w-10 h-10 cursor-pointer"
+        className="w-26 h-8 cursor-pointer"
       />
     </div>
   );

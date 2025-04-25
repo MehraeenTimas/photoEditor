@@ -18,7 +18,7 @@ const RedoButton = ({ redoStack, setRedoStack, setElements, setHistory, elements
   };
 
   return (
-    <button onClick={handleRedo} disabled={redoStack.length === 0} className="p-2 bg-teal-500 text-white rounded disabled:bg-gray-400">
+    <button onClick={handleRedo} disabled={redoStack.length === 0} className="p-2 bg-teal-500 text-white rounded disabled:bg-gray-500">
       Redo
     </button>
   );

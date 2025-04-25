@@ -25,7 +25,7 @@ const Export = ({ stageRef, hideTransformer }) => {
   return (
     <button
       onClick={handleExport}
-      className="p-2 bg-yellow-500 text-white rounded"
+  className="p-2 bg-gray-500 text-white rounded"
     >
       Export as PNG
     </button>

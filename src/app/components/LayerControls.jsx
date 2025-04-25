@@ -23,14 +23,14 @@ const LayerControls = ({ selectedId, elements, setElements, saveHistory }) => {
       <button
         onClick={handleBringToFront}
         disabled={!selectedId}
-        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-400'} text-white rounded`}
+        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-500'} text-white rounded`}
       >
         Bring to Front
       </button>
       <button
         onClick={handleSendToBack}
         disabled={!selectedId}
-        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-400'} text-white rounded`}
+        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-500'} text-white rounded`}
       >
         Send to Back
       </button>

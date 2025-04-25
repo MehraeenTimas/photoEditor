@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Button from '@mui/material/Button';
 import { generateUniqueId } from './utils';
 
 const AddTextButton = ({ setElements, textColor, fontFamily, saveHistory }) => {
@@ -17,7 +18,7 @@ const AddTextButton = ({ setElements, textColor, fontFamily, saveHistory }) => {
   };
 
   return (
-    <button onClick={handleAddText} className="p-2 bg-green-500 text-white rounded">
+    <button  onClick={handleAddText} className=" p-2 w-full bg-gray-500 text-white mb-2 rounded">
       Add Text
     </button>
   );

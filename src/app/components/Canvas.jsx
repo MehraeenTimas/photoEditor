@@ -136,7 +136,7 @@ const Canvas = forwardRef(({ elements, setElements, bgColor, brushMode, brushCol
 
   return (
     <Stage
-      width={800}
+      width={900}
       height={600}
       ref={stageRef}
       onMouseDown={brushMode ? handleBrushStart : undefined}

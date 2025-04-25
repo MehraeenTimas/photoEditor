@@ -10,11 +10,14 @@ const AddImageButton = ({ setElements, saveHistory }) => {
       img.src = URL.createObjectURL(file);
       return { type: 'image', id: generateUniqueId(), img, x: 50, y: 50 };
     });
+   
     setElements((prev) => {
+    
       const newElements = [...prev, ...newImages];
       if (saveHistory) {
         saveHistory(newElements);
       }
+  
       return newElements;
     });
   };
@@ -22,9 +25,9 @@ const AddImageButton = ({ setElements, saveHistory }) => {
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: 'image/*' });
 
   return (
-    <div {...getRootProps()} className="p-4 bg-gray-200 border-2 border-dashed border-gray-400 text-center cursor-pointer">
-      <input {...getInputProps()} />
-      <p>Add Image (Drag or Click)</p>
+    <div {...getRootProps()} className="p-2 bg-gray-500 text-white rounded mb-2" >
+      <input {...getInputProps()}  />
+       <p className="text-center" >Add Image</p> 
     </div>
   );
 };

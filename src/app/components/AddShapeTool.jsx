@@ -4,7 +4,7 @@ import { generateUniqueId } from './utils'
 
 const AddShapeTool = ({ setElements, saveHistory }) => {
   const [shapeType, setShapeType] = useState('rect');
-  const [shapeColor, setShapeColor] = useState('#ff0000');
+  const [shapeColor, setShapeColor] = useState('#000000');
 
   const handleAddShape = () => {
     const shapeProps = {
@@ -34,24 +34,27 @@ const AddShapeTool = ({ setElements, saveHistory }) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm">Add Shape</span>
+
       <select
         value={shapeType}
         onChange={(e) => setShapeType(e.target.value)}
-        className="p-1 rounded border"
+        className="p-2 bg-gray-500 text-white rounded"
       >
         <option value="rect">Rectangle</option>
         <option value="circle">Circle</option>
       </select>
+      <div  className="flex flex-row items-center gap-2 p-2 bg-gray-500 rounded">
+      <label className="">shape Color:</label>
       <input
         type="color"
         value={shapeColor}
         onChange={(e) => setShapeColor(e.target.value)}
-        className="w-full h-10 cursor-pointer"
+        className="w-24 h-8 cursor-pointer"
       />
+      </div>
       <button
         onClick={handleAddShape}
-        className="p-2 bg-purple-500 text-white rounded"
+        className=" p-2 bg-gray-500 text-white rounded"
       >
         Add {shapeType === 'rect' ? 'Rectangle' : 'Circle'}
       </button>

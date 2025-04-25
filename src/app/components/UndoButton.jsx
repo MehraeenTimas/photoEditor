@@ -3,7 +3,10 @@ import React from 'react';
 
 const UndoButton = ({ history, setHistory, setElements, setRedoStack, elements }) => {
   const handleUndo = () => {
-    if (history.length === 0) return;
+    if (history.length === 0) {
+      setElements([]);
+      return
+    };
     const previous = history[history.length - 1].map((el) => {
       if (el.type === 'image' && el.imgSrc) {
         const img = new window.Image();
@@ -22,7 +25,7 @@ const UndoButton = ({ history, setHistory, setElements, setRedoStack, elements }
   };
 
   return (
-    <button onClick={handleUndo} disabled={history.length === 0} className="p-2 bg-orange-500 text-white rounded disabled:bg-gray-400">
+    <button onClick={handleUndo} disabled={history.length === 0 && elements.length === 0} className="p-2 bg-orange-500 text-white rounded disabled:bg-gray-500">
       Undo
     </button>
   );

@@ -11,8 +11,8 @@ const BrushSizePicker = ({ setBrushSize }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm">Brush Size: {size}px</label>
+    <div  className="flex flex-row items-center gap-2 p-2 bg-gray-500 rounded">
+      <label className=""> {size}px</label>
       <input
         type="range"
         min="1"

@@ -22,12 +22,12 @@ const FontPicker = ({ setFontFamily, selectedId, elements, setElements, saveHist
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm">Font:</label>
+    <div className="p-2 bg-gray-500 text-white rounded">
+      <label className="">Font:</label>
       <select
         value={font}
         onChange={handleFontChange}
-        className="p-1 rounded border"
+        className="p-1 rounded  border-0"
       >
         {fonts.map((fontOption) => (
           <option key={fontOption} value={fontOption}>

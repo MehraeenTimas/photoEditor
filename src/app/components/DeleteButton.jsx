@@ -25,7 +25,7 @@ const DeleteButton = ({ selectedId, setElements, setSelectedId, saveHistory, ele
     <button
       onClick={handleDelete}
       disabled={!selectedId}
-      className={`p-2 ${selectedId ? 'bg-red-500' : 'bg-gray-400'} text-white rounded`}
+className="p-2 bg-gray-500 text-white rounded"
     >
       Delete Selected
     </button>
