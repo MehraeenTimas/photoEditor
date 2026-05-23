@@ -1,41 +1,23 @@
-'use client';
-import React from 'react';
-
-const LayerControls = ({ selectedId, elements, setElements, saveHistory }) => {
-  const handleBringToFront = () => {
+import { ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+export default function LayerControls({ selectedId, elements, setElements, saveHistory }) {
+  const moveLayer = (direction) => {
     if (!selectedId) return;
-    const element = elements.find((el) => el.id === selectedId);
-    const newElements = [...elements.filter((el) => el.id !== selectedId), element];
-    saveHistory(newElements);
-    setElements(newElements);
-  };
-
-  const handleSendToBack = () => {
-    if (!selectedId) return;
-    const element = elements.find((el) => el.id === selectedId);
-    const newElements = [element, ...elements.filter((el) => el.id !== selectedId)];
-    saveHistory(newElements);
+    const index = elements.findIndex(el => el.id === selectedId);
+    if (index < 0) return;
+    if (direction === 'up' && index === elements.length - 1) return;
+    if (direction === 'down' && index === 0) return;
+    
+    saveHistory();
+    const newElements = [...elements];
+    const targetIndex = direction === 'up' ? index + 1 : index - 1;
+    [newElements[index], newElements[targetIndex]] = [newElements[targetIndex], newElements[index]];
     setElements(newElements);
   };
 
   return (
-    <div className="flex gap-2">
-      <button
-        onClick={handleBringToFront}
-        disabled={!selectedId}
-        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-500'} text-white rounded`}
-      >
-        Bring to Front
-      </button>
-      <button
-        onClick={handleSendToBack}
-        disabled={!selectedId}
-        className={`p-2 ${selectedId ? 'bg-blue-500' : 'bg-gray-500'} text-white rounded`}
-      >
-        Send to Back
-      </button>
-    </div>
+    <>
+      <button onClick={() => moveLayer('up')} disabled={!selectedId} className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors" title="Bring Forward"><ArrowUpToLine size={16} /></button>
+      <button onClick={() => moveLayer('down')} disabled={!selectedId} className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors" title="Send Backward"><ArrowDownToLine size={16} /></button>
+    </>
   );
-};
-
-export default LayerControls;
+}

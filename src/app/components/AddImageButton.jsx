@@ -1,35 +1,24 @@
-'use client';
-import React from 'react';
-import { useDropzone } from 'react-dropzone';
-import { generateUniqueId } from './utils';
-
-const AddImageButton = ({ setElements, saveHistory }) => {
-  const onDrop = (acceptedFiles) => {
-    const newImages = acceptedFiles.map((file) => {
-      const img = new window.Image();
-      img.src = URL.createObjectURL(file);
-      return { type: 'image', id: generateUniqueId(), img, x: 50, y: 50 };
-    });
-   
-    setElements((prev) => {
-    
-      const newElements = [...prev, ...newImages];
-      if (saveHistory) {
-        saveHistory(newElements);
-      }
-  
-      return newElements;
-    });
+import { ImagePlus } from 'lucide-react';
+export default function AddImageButton({ setElements, saveHistory }) {
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      saveHistory();
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          setElements(prev => [...prev, { id: `img_${Date.now()}`, type: 'image', img, x: 50, y: 50, width: 200, height: (200 * img.height) / img.width }]);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
   };
-
-  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: 'image/*' });
-
   return (
-    <div {...getRootProps()} className="p-2 bg-gray-500 text-white rounded mb-2" >
-      <input {...getInputProps()}  />
-       <p className="text-center" >Add Image</p> 
-    </div>
+    <label className="flex items-center gap-2 w-full bg-[#333] hover:bg-[#444] text-gray-200 text-xs px-3 py-2 rounded cursor-pointer transition-colors border border-[#444]">
+      <ImagePlus size={14} /> Add Image
+      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+    </label>
   );
-};
-
-export default AddImageButton;
+}

@@ -5,7 +5,8 @@ module.exports = {
     reactStrictMode: true,
   }
 const nextConfig = {
-    /* config options here */
+  output: 'export',
+  basePath: '/copixel', 
   }
    
   module.exports = nextConfig

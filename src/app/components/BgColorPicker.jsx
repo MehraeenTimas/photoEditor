@@ -1,17 +1,8 @@
-'use client';
-import React from 'react';
-
-const BgColorPicker = ({ setBgColor }) => {
+export default function BgColorPicker({ setBgColor }) {
   return (
-    <div className="flex flex-row items-center gap-2 p-2 bg-gray-500 rounded">
-      <label className="">Background:</label>
-      <input
-        type="color"
-        onChange={(e) => setBgColor(e.target.value)}
-        className="w-full h-8 cursor-pointer"
-      />
+    <div className="flex items-center gap-2 bg-[#1e1e1e] p-2 rounded border border-[#333]">
+      <span className="text-xs text-gray-300 flex-1">Background</span>
+      <input type="color" defaultValue="#ffffff" onChange={(e) => setBgColor(e.target.value)} className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent" />
     </div>
   );
-};
-
-export default BgColorPicker;
+}

@@ -1,281 +1,254 @@
-'use client';
-import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Stage, Layer, Image as KonvaImage, Text, Transformer, Rect, Line, Circle } from 'react-konva';
-import { generateUniqueId } from './utils';
+import React, { useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import { Stage, Layer, Image as KonvaImage, Rect, Circle, RegularPolygon, Text, Line, Transformer } from 'react-konva';
 
-const Canvas = forwardRef(({ elements, setElements, bgColor, brushMode, brushColor, brushSize, stageRef, history, setHistory, setRedoStack, selectedId, setSelectedId }, ref) => {
-  const trRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [currentLine, setCurrentLine] = useState(null);
-  const [editingId, setEditingId] = useState(null);
+const Canvas = forwardRef(({ elements, setElements, bgColor, brushMode, brushType, brushColor, brushSize, stageRef, saveHistory, selectedId, setSelectedId, logicalSize }, ref) => {
+  const [scale, setScale] = useState(1);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [editingText, setEditingText] = useState(null);
 
-  const saveHistory = (newElements) => {
-    const serializedElements = newElements.map((el) => {
-      if (el.type === 'image' && el.img) {
-        return { ...el, imgSrc: el.img.src };
+  const containerRef = React.useRef(null);
+  const transformerRef = React.useRef(null);
+  const isDrawingRef = React.useRef(false);
+
+  useImperativeHandle(ref, () => ({
+    hideTransformer: () => setSelectedId(null)
+  }));
+
+  useEffect(() => {
+    const resizeCanvas = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setContainerSize({ width: clientWidth, height: clientHeight });
+        
+        const scaleX = (clientWidth * 0.95) / logicalSize.width;
+        const scaleY = (clientHeight * 0.95) / logicalSize.height;
+        setScale(Math.min(scaleX, scaleY));
       }
-      return el;
-    });
-    setHistory([...history, serializedElements]);
-    setRedoStack([]);
-    setElements(newElements);
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [logicalSize]);
+
+  useEffect(() => {
+    if (transformerRef.current) {
+      if (selectedId && !editingText) {
+        const node = stageRef.current.findOne(`#${selectedId}`);
+        if (node) {
+          transformerRef.current.nodes([node]);
+          transformerRef.current.getLayer().batchDraw();
+        } else {
+          transformerRef.current.nodes([]);
+        }
+      } else {
+        transformerRef.current.nodes([]);
+      }
+    }
+  }, [selectedId, elements, stageRef, editingText]);
+
+  const handlePointerDown = (e) => {
+    if (editingText) return; // Prevent new drawing or losing focus while editing
+    
+    if (e.target === e.target.getStage()) setSelectedId(null);
+    if (!brushMode) return;
+    
+    isDrawingRef.current = true;
+    saveHistory();
+    const pos = e.target.getStage().getPointerPosition();
+    const id = `brush_${Date.now()}`;
+    const newElement = {
+      id,
+      type: 'brush',
+      tool: brushType,
+      points: [pos.x / scale, pos.y / scale],
+      stroke: brushColor,
+      strokeWidth: brushSize,
+    };
+    setElements([...elements, newElement]);
   };
 
-  const handleSelect = (e, id) => {
-    setSelectedId(id);
-    if (trRef.current) {
-      trRef.current.nodes([e.target]);
-      trRef.current.getLayer().batchDraw();
-    }
+  const handlePointerMove = (e) => {
+    if (!brushMode || !isDrawingRef.current || editingText) return;
+    const stage = e.target.getStage();
+    const point = stage.getPointerPosition();
+    
+    setElements(prevElements => {
+      const lastElement = { ...prevElements[prevElements.length - 1] };
+      lastElement.points = lastElement.points.concat([point.x / scale, point.y / scale]);
+      return [...prevElements.slice(0, -1), lastElement];
+    });
+  };
+
+  const handlePointerUp = () => {
+    isDrawingRef.current = false;
+  };
+
+  const handleDragEnd = (e, id) => {
+    const node = e.target;
+    setElements(elements.map(el => el.id === id ? { ...el, x: node.x(), y: node.y() } : el));
   };
 
   const handleTransformEnd = (e, id) => {
     const node = e.target;
-    const newElements = elements.map((el) =>
-      el.id === id
-        ? { ...el, x: node.x(), y: node.y(), scaleX: node.scaleX(), scaleY: node.scaleY(), rotation: node.rotation() }
-        : el
-    );
-    saveHistory(newElements);
-  };
-
-  const handleBrushStart = (e) => {
-    if (!brushMode) return;
-    setIsDrawing(true);
-    const stage = stageRef.current;
-    const pos = stage.getPointerPosition();
-    setCurrentLine({ id: generateUniqueId(), points: [pos.x, pos.y], color: brushColor, size: brushSize });
-  };
-
-  const handleBrushMove = (e) => {
-    if (!brushMode || !isDrawing || !currentLine) return;
-    const stage = stageRef.current;
-    const pos = stage.getPointerPosition();
-    setCurrentLine((prev) => ({
-      ...prev,
-      points: [...prev.points, pos.x, pos.y],
+    setElements(elements.map(el => {
+      if (el.id === id) {
+        return {
+          ...el,
+          x: node.x(),
+          y: node.y(),
+          rotation: node.rotation(),
+          scaleX: node.scaleX(),
+          scaleY: node.scaleY(),
+        };
+      }
+      return el;
     }));
   };
 
-  const handleBrushEnd = () => {
-    if (!brushMode || !isDrawing || !currentLine) return;
-    setIsDrawing(false);
-    const newElements = [...elements, { type: 'brush', ...currentLine }];
-    saveHistory(newElements);
-    setCurrentLine(null);
-  };
-
-  const handleTextEdit = (e, el) => {
+  // Text Edit Handling
+  const handleTextDblClick = (e, id) => {
     const textNode = e.target;
-    setEditingId(el.id);
-
-    const stage = textNode.getStage();
-    const textPosition = textNode.absolutePosition();
-    const rotation = textNode.rotation();
-    const scaleX = textNode.scaleX();
-    const scaleY = textNode.scaleY();
-
-    textNode.hide();
-    stage.draw();
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = textNode.text();
-    input.style.position = 'absolute';
-    input.style.top = `${textPosition.y}px`;
-    input.style.left = `${textPosition.x}px`;
-    input.style.width = `${textNode.width() * scaleX}px`;
-    input.style.height = `${textNode.height() * scaleY}px`;
-    input.style.fontSize = `${textNode.fontSize() * scaleX}px`;
-    input.style.color = textNode.fill();
-    input.style.transform = `rotate(${rotation}deg)`;
-    input.style.transformOrigin = 'top left';
-    input.style.border = '1px solid #ccc';
-    input.style.padding = '2px';
-    input.style.background = 'rgba(255, 255, 255, 0.9)';
-    input.style.outline = 'none';
-
-    document.body.appendChild(input);
-    input.focus();
-    input.select();
-
-    const finishEditing = () => {
-      const newText = input.value;
-      const newElements = elements.map((item) =>
-        item.id === el.id ? { ...item, text: newText } : item
-      );
-      saveHistory(newElements);
-      document.body.removeChild(input);
-      textNode.show();
-      stage.draw();
-      setEditingId(null);
-    };
-
-    input.addEventListener('blur', finishEditing);
-    input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        finishEditing();
-      } else if (event.key === 'Escape') {
-        document.body.removeChild(input);
-        textNode.show();
-        stage.draw();
-        setEditingId(null);
-      }
+    const textPosition = textNode.getAbsolutePosition();
+    const stageBox = stageRef.current.container().getBoundingClientRect();
+    
+    setEditingText({
+      id,
+      x: stageBox.left + textPosition.x,
+      y: stageBox.top + textPosition.y,
+      width: textNode.width() * textNode.scaleX() * scale,
+      height: textNode.height() * textNode.scaleY() * scale,
+      text: textNode.text(),
+      fontSize: textNode.fontSize() * textNode.scaleY() * scale,
+      fontStyle: textNode.fontStyle(),
+      textDecoration: textNode.textDecoration(),
+      rotation: textNode.rotation()
     });
   };
 
-  useImperativeHandle(ref, () => ({
-    hideTransformer() {
-      if (trRef.current) {
-        trRef.current.nodes([]); // Fixed typo: 'threadss' -> 'nodes'
-        trRef.current.getLayer().batchDraw();
-      }
-    },
-    saveHistory,
-  }));
+  const handleTextareaChange = (e) => {
+    setEditingText(prev => ({ ...prev, text: e.target.value }));
+  };
+
+  const handleTextareaBlur = () => {
+    saveHistory();
+    setElements(elements.map(el => el.id === editingText.id ? { ...el, text: editingText.text } : el));
+    setEditingText(null);
+  };
 
   return (
-    <Stage
-      width={900}
-      height={600}
-      ref={stageRef}
-      onMouseDown={brushMode ? handleBrushStart : undefined}
-      onMouseMove={brushMode ? handleBrushMove : undefined}
-      onMouseUp={brushMode ? handleBrushEnd : undefined}
-    >
-      <Layer>
-        <Rect x={0} y={0} width={800} height={600} fill={bgColor} />
-        {elements.map((el) => {
-          if (el.type === 'image') {
-            return (
-              <KonvaImage
-                key={el.id}
-                id={el.id}
-                image={el.img}
-                x={el.x}
-                y={el.y}
-                scaleX={el.scaleX || 1}
-                scaleY={el.scaleY || 1}
-                rotation={el.rotation || 0}
-                draggable
-                onClick={(e) => handleSelect(e, el.id)}
-                onTransformEnd={(e) => handleTransformEnd(e, el.id)}
-                onDragEnd={(e) => {
-                  const newElements = elements.map((item) =>
-                    item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item
-                  );
-                  saveHistory(newElements);
-                }}
-              />
-            );
-          } else if (el.type === 'text') {
-            return (
-              <Text
-                key={el.id}
-                id={el.id}
-                text={el.text}
-                x={el.x}
-                y={el.y}
-                scaleX={el.scaleX || 1}
-                scaleY={el.scaleY || 1}
-                rotation={el.rotation || 0}
-                fill={el.fill || '#000000'}
-                draggable
-                fontSize={20}
-                fontFamily={el.fontFamily || 'Arial'}
-                onClick={(e) => handleSelect(e, el.id)}
-                onTransformEnd={(e) => handleTransformEnd(e, el.id)}
-                onDragEnd={(e) => {
-                  const newElements = elements.map((item) =>
-                    item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item
-                  );
-                  saveHistory(newElements);
-                }}
-                onDblClick={(e) => handleTextEdit(e, el)}
-                visible={editingId !== el.id}
-              />
-            );
-          } else if (el.type === 'brush') {
-            return (
-              <Line
-                key={el.id}
-                id={el.id}
-                points={el.points}
-                stroke={el.color}
-                strokeWidth={el.size || 5}
-                lineCap="round"
-                lineJoin="round"
-              />
-            );
-          } else if (el.type === 'shape' && el.shape === 'rect') {
-            return (
-              <Rect
-                key={el.id}
-                id={el.id}
-                x={el.x}
-                y={el.y}
-                width={el.width}
-                height={el.height}
-                fill={el.fill}
-                scaleX={el.scaleX || 1}
-                scaleY={el.scaleY || 1}
-                rotation={el.rotation || 0}
-                draggable
-                onClick={(e) => handleSelect(e, el.id)}
-                onTransformEnd={(e) => handleTransformEnd(e, el.id)}
-                onDragEnd={(e) => {
-                  const newElements = elements.map((item) =>
-                    item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item
-                  );
-                  saveHistory(newElements);
-                }}
-              />
-            );
-          } else if (el.type === 'shape' && el.shape === 'circle') {
-            return (
-              <Circle
-                key={el.id}
-                id={el.id}
-                x={el.x}
-                y={el.y}
-                radius={el.radius}
-                fill={el.fill}
-                scaleX={el.scaleX || 1}
-                scaleY={el.scaleY || 1}
-                rotation={el.rotation || 0}
-                draggable
-                onClick={(e) => handleSelect(e, el.id)}
-                onTransformEnd={(e) => handleTransformEnd(e, el.id)}
-                onDragEnd={(e) => {
-                  const newElements = elements.map((item) =>
-                    item.id === el.id ? { ...item, x: e.target.x(), y: e.target.y() } : item
-                  );
-                  saveHistory(newElements);
-                }}
-              />
-            );
-          }
-        })}
-        {currentLine && (
-          <Line
-            points={currentLine.points}
-            stroke={currentLine.color}
-            strokeWidth={currentLine.size || 5}
-            lineCap="round"
-            lineJoin="round"
-          />
-        )}
-        <Transformer
-          ref={trRef}
-          boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5 ? oldBox : newBox)}
-          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          rotateEnabled={true}
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center relative">
+      <div 
+        style={{ 
+          width: logicalSize.width * scale, 
+          height: logicalSize.height * scale,
+          backgroundColor: bgColor,
+          boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+        }}
+      >
+        <Stage
+          width={logicalSize.width * scale}
+          height={logicalSize.height * scale}
+          scaleX={scale}
+          scaleY={scale}
+          ref={stageRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          className={brushMode ? 'cursor-crosshair' : 'cursor-default'}
+        >
+          <Layer>
+            {elements.map((el) => {
+              const isEditing = editingText && editingText.id === el.id;
+              const commonProps = {
+                id: el.id,
+                x: el.x || 0,
+                y: el.y || 0,
+                rotation: el.rotation || 0,
+                scaleX: el.scaleX || 1,
+                scaleY: el.scaleY || 1,
+                draggable: !brushMode,
+                onClick: () => !brushMode && setSelectedId(el.id),
+                onTap: () => !brushMode && setSelectedId(el.id),
+                onDragStart: saveHistory,
+                onDragEnd: (e) => handleDragEnd(e, el.id),
+                onTransformStart: saveHistory,
+                onTransformEnd: (e) => handleTransformEnd(e, el.id),
+              };
+
+              switch (el.type) {
+                case 'image': return <KonvaImage key={el.id} {...commonProps} image={el.img} width={el.width} height={el.height} />;
+                case 'rect': return <Rect key={el.id} {...commonProps} width={el.width} height={el.height} fill={el.fill} />;
+                case 'circle': return <Circle key={el.id} {...commonProps} radius={el.radius} fill={el.fill} />;
+                case 'triangle': return <RegularPolygon key={el.id} {...commonProps} sides={3} radius={el.radius} fill={el.fill} />;
+                case 'text': return (
+                  <Text 
+                    key={el.id} 
+                    {...commonProps} 
+                    text={el.text} 
+                    fontSize={el.fontSize} 
+                    fill={el.fill} 
+                    width={el.width}
+                    fontStyle={el.fontStyle}
+                    textDecoration={el.textDecoration}
+                    padding={5} 
+                    visible={!isEditing}
+                    onDblClick={(e) => handleTextDblClick(e, el.id)}
+                    onDblTap={(e) => handleTextDblClick(e, el.id)}
+                  />
+                );
+                case 'brush': return (
+                  <Line 
+                    key={el.id} 
+                    points={el.points} 
+                    stroke={el.stroke} 
+                    strokeWidth={el.strokeWidth} 
+                    tension={0.5} 
+                    lineCap="round" 
+                    lineJoin="round" 
+                    globalCompositeOperation={el.tool === 'eraser' ? 'destination-out' : 'source-over'} 
+                  />
+                );
+                default: return null;
+              }
+            })}
+            <Transformer ref={transformerRef} boundBoxFunc={(oldBox, newBox) => newBox.width < 5 || newBox.height < 5 ? oldBox : newBox} />
+          </Layer>
+        </Stage>
+      </div>
+
+      {editingText && (
+        <textarea
+          autoFocus
+          value={editingText.text}
+          onChange={handleTextareaChange}
+          onBlur={handleTextareaBlur}
+          style={{
+            position: 'absolute',
+            top: editingText.y,
+            left: editingText.x,
+            width: editingText.width,
+            height: editingText.height,
+            fontSize: `${editingText.fontSize}px`,
+            fontStyle: editingText.fontStyle?.includes('italic') ? 'italic' : 'normal',
+            fontWeight: editingText.fontStyle?.includes('bold') ? 'bold' : 'normal',
+            textDecoration: editingText.textDecoration,
+            color: '#000',
+            transform: `rotateZ(${editingText.rotation}deg)`,
+            transformOrigin: 'top left',
+            background: 'none',
+            border: '1px dashed #005fb8',
+            outline: 'none',
+            resize: 'none',
+            overflow: 'hidden',
+            margin: 0,
+            padding: '5px',
+          }}
         />
-      </Layer>
-    </Stage>
+      )}
+    </div>
   );
 });
 
 Canvas.displayName = 'Canvas';
-
 export default Canvas;

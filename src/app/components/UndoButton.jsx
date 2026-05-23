@@ -1,34 +1,16 @@
-'use client';
-import React from 'react';
-
-const UndoButton = ({ history, setHistory, setElements, setRedoStack, elements }) => {
-  const handleUndo = () => {
-    if (history.length === 0) {
-      setElements([]);
-      return
-    };
-    const previous = history[history.length - 1].map((el) => {
-      if (el.type === 'image' && el.imgSrc) {
-        const img = new window.Image();
-        img.src = el.imgSrc;
-        return { ...el, img };
-      }
-      return el;
-    });
-    setRedoStack((prev) => [...prev, elements]);
-    setHistory(history.slice(0, -1));
-    setElements(previous);
-    if (typeof window !== 'undefined') {
-      const canvas = document.querySelector('canvas');
-      if (canvas) canvas.dispatchEvent(new Event('click')); // Deselect
-    }
-  };
-
+import { Undo2 } from 'lucide-react';
+export default function UndoButton({ history, setHistory, setElements, setRedoStack, elements }) {
   return (
-    <button onClick={handleUndo} disabled={history.length === 0 && elements.length === 0} className="p-2 bg-orange-500 text-white rounded disabled:bg-gray-500">
-      Undo
+    <button onClick={() => {
+        if (history.length === 0) return;
+        const previous = history[history.length - 1];
+        setRedoStack(prev => [...prev, elements]);
+        setElements(previous);
+        setHistory(prev => prev.slice(0, -1));
+      }} 
+      disabled={history.length === 0}
+      className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors" title="Undo">
+      <Undo2 size={16} />
     </button>
   );
-};
-
-export default UndoButton;
+}
